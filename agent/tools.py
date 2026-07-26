@@ -501,11 +501,60 @@ def create_artifact(name: str, content: str) -> str:
 
 def get_route_options(origin: str, destination: str) -> str:
     """
-    Get transit route options (bus, rickshaw, walk) between an origin and destination.
+    Get transit route options (driving, rickshaw, walk) between an origin and destination using OpenStreetMap.
     Useful for helping students plan their commute.
     """
-    # Mocking for the hackathon
-    return f"{origin} থেকে {destination} যাওয়ার রুট:\n১. লোকাল বাস (৳৩০) - ৪৫ মিনিট (ট্রাফিকের ওপর নির্ভরশীল)\n২. রিকশা (৳১২০) - ৩০ মিনিট\n৩. হাঁটা পথ - ১ ঘন্টা ১৫ মিনিট"
+    import requests
+    
+    headers = {"User-Agent": "SmartTransitAgent/1.0"}
+    
+    def geocode(loc: str):
+        query = f"{loc}, Dhaka, Bangladesh" if "dhaka" not in loc.lower() and "bangladesh" not in loc.lower() else loc
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": query, "format": "json", "limit": 1}
+        try:
+            res = requests.get(url, params=params, headers=headers, timeout=5)
+            if res.status_code == 200 and res.json():
+                data = res.json()[0]
+                return data["lon"], data["lat"]
+        except Exception:
+            pass
+        return None, None
+
+    lon1, lat1 = geocode(origin)
+    lon2, lat2 = geocode(destination)
+
+    if not (lon1 and lat1 and lon2 and lat2):
+        return f"দুঃখিত, {origin} বা {destination}-এর সঠিক অবস্থান খুঁজে পাওয়া যায়নি।"
+
+    def fetch_osrm(profile="driving"):
+        url = f"http://router.project-osrm.org/route/v1/{profile}/{lon1},{lat1};{lon2},{lat2}?overview=false"
+        try:
+            res = requests.get(url, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("routes"):
+                    r = data["routes"][0]
+                    return r["distance"] / 1000, r["duration"] / 60
+        except Exception:
+            pass
+        return None, None
+
+    drive_dist, drive_time = fetch_osrm("driving")
+    walk_dist, walk_time = fetch_osrm("foot")
+
+    result = f"{origin} থেকে {destination} যাওয়ার রুট:\n"
+    if drive_dist is not None:
+        rickshaw_time = (drive_dist / 10.0) * 60
+        result += f"🚗 গাড়ি/বাস: দূরত্ব {drive_dist:.1f} কিমি, আনুমানিক সময় {int(drive_time)} মিনিট\n"
+        result += f"🛺 রিকশা: দূরত্ব {drive_dist:.1f} কিমি, আনুমানিক সময় {int(rickshaw_time)} মিনিট\n"
+    if walk_dist is not None:
+        result += f"🚶 হাঁটা পথ: দূরত্ব {walk_dist:.1f} কিমি, আনুমানিক সময় {int(walk_time)} মিনিট\n"
+        
+    if drive_dist is None and walk_dist is None:
+         return f"দুঃখিত, {origin} থেকে {destination}-এর রুট বের করা সম্ভব হয়নি।"
+
+    return result.strip()
 
 def get_live_traffic(location: str = "", origin: str = "", destination: str = "") -> str:
     """

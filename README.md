@@ -15,7 +15,7 @@ Instead of relying on generic cloud chatbots, this project uses an autonomous to
 
 - **Full Bengali Localization:** The sleek, glassmorphism UI and the agent's core reasoning and output are strictly localized to Bengali for a seamless local experience.
 - **Autonomous Task Planning:** Before answering, Gemma creates and executes a step-by-step task list (visible in the sidebar) to gather data before providing a final recommendation.
-- **Live Transit Tools:** The agent is equipped with custom tools (e.g., `get_live_traffic`, `get_route_options`, `get_ride_estimate`) to pull real-time mocked transit data.
+- **Live Transit Tools:** The agent is equipped with custom tools (e.g., `get_live_traffic`, `get_route_options`, `get_ride_estimate`). The routing engine is powered by a **real OpenStreetMap (OSRM) & Nominatim API integration**, providing actual distances and commute times!
 - **100% Local & Private:** No API keys, no subscriptions, and your data never leaves your machine. Powered by Ollama.
 - **Real-Time Streaming:** Built on FastAPI and WebSockets, delivering blazing fast token streaming and live state updates to the UI.
 - **Beautiful UI:** A modern web interface featuring dynamic terminal spinners, glassmorphism hero banners, and active context-window memory tracking.
