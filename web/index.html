@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্মার্ট কমিউটার (জেম্মা)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Hind+Siliguri:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg: #0a0d0a;
+            --bg-raised: #10140f;
+            --pane: rgba(14, 18, 14, 0.7);
+            --border: #1f2b21;
+            --border-bright: #2d4530;
+            --green: #3fa66d;
+            --green-glow: rgba(63,166,109,0.35);
+            --amber: #d4a24e;
+            --fg: #e8e6df;
+            --fg-dim: #9aa39c;
+            --fg-faint: #5e685f;
+            --mono: 'IBM Plex Mono', monospace;
+            --sans: 'Hind Siliguri', sans-serif;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--sans);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(rgba(63,166,109,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(63,166,109,0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 320px;
+            background: rgba(10,13,10,0.85);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            transition: transform 0.3s ease;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--mono);
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--green);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand .dot {
+            width: 10px;
+            height: 10px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(63,166,109, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(63,166,109, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(63,166,109, 0); }
+        }
+
+        .sidebar-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--fg-faint);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .goal-box {
+            background: rgba(63,166,109,0.05);
+            border: 1px dashed var(--border-bright);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--green);
+            margin-bottom: 12px;
+        }
+        
+        .goal-input {
+            width: 100%;
+            background: var(--bg-raised);
+            border: 1px solid var(--border-bright);
+            color: var(--fg);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: var(--sans);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .goal-input:focus { border-color: var(--green); }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.85rem;
+            padding: 8px;
+            border-radius: 6px;
+            background: var(--bg-raised);
+            border: 1px solid var(--border);
+        }
+        .task-item.done { opacity: 0.6; }
+        .task-item.done .text { text-decoration: line-through; }
+        
+        .status-icon { font-family: var(--mono); font-size: 1.1em; }
+        .status-icon.pending { color: var(--fg-faint); }
+        .status-icon.in_progress { color: var(--green); }
+        .status-icon.done { color: var(--green); }
+        .status-icon.failed { color: #e0605a; }
+
+        .add-task-btn, .action-btn {
+            background: transparent;
+            border: 1px solid var(--border-bright);
+            color: var(--fg-dim);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--mono);
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .action-btn:hover {
+            color: var(--green);
+            border-color: var(--green);
+            background: rgba(63,166,109,0.1);
+        }
+
+        /* --- MAIN AREA --- */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 16px;
+            padding: 16px 24px;
+            background: rgba(10,13,10,0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .header-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--fg-dim);
+        }
+
+        select.model-select {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-bright);
+            color: var(--fg);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+        select.model-select:focus { border-color: var(--green); }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 850px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: slideUp 0.3s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user { align-items: flex-end; }
+        .message.assistant { align-items: flex-start; }
+
+        .bubble {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            position: relative;
+        }
+
+        .message.user .bubble {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-bright);
+            color: var(--fg);
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.assistant .bubble {
+            background: var(--pane);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            border-bottom-left-radius: 2px;
+            backdrop-filter: blur(10px);
+            width: 100%;
+        }
+
+        .message.assistant .bubble p { margin-bottom: 12px; }
+        .message.assistant .bubble p:last-child { margin-bottom: 0; }
+        .message.assistant .bubble pre {
+            background: var(--bg-raised);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            margin: 12px 0;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+        }
+        
+        .message.assistant .bubble code {
+            font-family: var(--mono);
+            background: var(--bg-raised);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .message.assistant .bubble pre code { padding: 0; background: transparent; }
+
+        .tool-call {
+            margin: 10px 0;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px dashed var(--border-bright);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .tool-header {
+            padding: 8px 12px;
+            background: rgba(63,166,109,0.1);
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .tool-result {
+            padding: 8px 12px;
+            color: var(--fg-dim);
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .input-area {
+            padding: 24px;
+            background: rgba(10,13,10,0.9);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .input-wrapper {
+            max-width: 850px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            background: var(--bg-raised);
+            border: 1px solid var(--border-bright);
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--green);
+            box-shadow: 0 0 15px rgba(63,166,109,0.15);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--fg);
+            padding: 16px 20px;
+            font-family: var(--sans);
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            max-height: 200px;
+            line-height: 1.5;
+        }
+
+        textarea::placeholder { color: var(--fg-faint); }
+
+        .send-btn {
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            margin: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 12px var(--green-glow);
+        }
+
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .send-btn:disabled {
+            background: var(--border-bright);
+            color: var(--fg-dim);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 16px 20px;
+            background: var(--pane);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            border-bottom-left-radius: 2px;
+            width: fit-content;
+            animation: slideUp 0.3s ease-out forwards;
+            backdrop-filter: blur(10px);
+        }
+
+        .terminal-spinner {
+            font-family: var(--mono);
+            font-size: 1.2rem;
+            color: var(--green);
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+        }
+
+        .terminal-spinner::after {
+            content: '⠋';
+            animation: terminal-spin 0.8s step-end infinite;
+        }
+
+        @keyframes terminal-spin {
+            0% { content: '⠋'; }
+            10% { content: '⠙'; }
+            20% { content: '⠹'; }
+            30% { content: '⠸'; }
+            40% { content: '⠼'; }
+            50% { content: '⠴'; }
+            60% { content: '⠦'; }
+            70% { content: '⠧'; }
+            80% { content: '⠇'; }
+            90% { content: '⠏'; }
+        }
+
+        /* --- HERO BANNER --- */
+        .hero-banner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 48px 32px;
+            margin: 20px auto 40px auto;
+            max-width: 700px;
+            background: linear-gradient(145deg, rgba(63, 166, 109, 0.08) 0%, rgba(10, 13, 10, 0.6) 100%);
+            border: 1px solid var(--border-bright);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-icon {
+            width: 72px;
+            height: 72px;
+            background: var(--bg-raised);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            border: 1px solid var(--green);
+            box-shadow: 0 0 30px var(--green-glow);
+            color: var(--green);
+        }
+        
+        .hero-icon svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .hero-title {
+            font-family: var(--sans);
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #fff;
+            background: linear-gradient(to right, #ffffff, #9aa39c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subtitle {
+            font-family: var(--sans);
+            font-size: 1.05rem;
+            color: var(--fg-dim);
+            line-height: 1.7;
+            max-width: 550px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--fg-faint); }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="brand">
+            <div class="dot" id="status-dot"></div>
+            স্মার্ট কমিউটার (Gemma)
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-title">দ্রুত ট্রানজিট অ্যাকশন</div>
+            <button class="action-btn" style="width: 100%; text-align: left; margin-bottom: 8px;" onclick="prefillPrompt('ধানমন্ডি থেকে গুলশানের ট্রাফিক কেমন?')">🚦 ট্রাফিক: ধানমন্ডি থেকে গুলশান</button>
+            <button class="action-btn" style="width: 100%; text-align: left; margin-bottom: 8px;" onclick="prefillPrompt('ব্র্যাক ইউনিভার্সিটি থেকে বনানী যাওয়ার রুট এবং পাঠাও এর ভাড়া জানাও।')">🛵 রুট: ব্র্যাক থেকে বনানী</button>
+            <button class="action-btn" style="width: 100%; text-align: left; margin-bottom: 8px;" onclick="prefillPrompt('মিরপুর ১০ থেকে মতিঝিল যাওয়ার বাস রুটগুলো কী কী?')">🚌 বাস রুট: মিরপুর ১০ থেকে মতিঝিল</button>
+            <button class="action-btn" style="width: 100%; text-align: left;" onclick="prefillPrompt('এয়ারপোর্ট থেকে বসুন্ধরা যেতে উবার বা পাঠাও এর সম্ভাব্য ভাড়া কত?')">🚕 উবার/পাঠাও: এয়ারপোর্ট থেকে বসুন্ধরা</button>
+        </div>
+
+        <div class="sidebar-section" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="section-title" style="margin-bottom: 8px;">
+                টাস্কসমূহ
+                <div style="display: flex; gap: 4px;">
+                    <button class="action-btn" style="margin: 0; padding: 2px 6px;" onclick="clearTasks()">সম্পন্ন মুছুন</button>
+                    <button class="action-btn" style="margin: 0; padding: 2px 6px;" onclick="clearAllTasks()">সব মুছুন</button>
+                </div>
+            </div>
+            <div class="task-list" id="task-list">
+                <div style="color: var(--fg-faint); font-size: 0.85rem; font-style: italic;">এখনো কোনো টাস্ক নেই।</div>
+            </div>
+            <input type="text" class="goal-input" id="task-input" placeholder="নতুন টাস্ক যোগ করুন... (Enter)" style="margin-top: 12px;">
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">সেশন ইনফো</div>
+            <div style="font-family: var(--mono); font-size: 0.8rem; color: var(--fg-dim);">
+                সক্রিয়: <span id="session-name" style="color: var(--green);">default</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">কনটেক্সট উইন্ডো</div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--fg-dim); margin-bottom: 6px; font-family: var(--mono);">
+                <span id="token-count">0 / 32,768 টোকেন</span>
+                <span id="turn-count">0 টার্ন</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: var(--bg-raised); border-radius: 3px; overflow: hidden; border: 1px solid var(--border);">
+                <div id="token-bar" style="height: 100%; width: 0%; background: var(--green); transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="main-area">
+        <div class="header">
+            <div class="header-item">
+                <button class="action-btn" onclick="clearMemory()">
+                    <svg style="width: 14px; height: 14px; margin-right: 4px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                    </svg>
+                    মেমরি মুছুন
+                </button>
+            </div>
+            <div class="header-item">
+                মডেল: 
+                <select class="model-select" id="model-select" onchange="changeModel(this.value)">
+                    <option value="qwen2.5:1.5b">qwen2.5:1.5b</option>
+                    <option value="qwen2.5:7b-instruct-q4_K_M">qwen2.5:7b</option>
+                    <option value="qwen3:4b-instruct">qwen3:4b-instruct</option>
+                    <option value="llama3.1:8b">llama3.1:8b</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <div class="hero-banner" id="hero-banner">
+                <div class="hero-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+                <h1 class="hero-title">স্মার্ট কমিউটারে স্বাগতম!</h1>
+                <p class="hero-subtitle">
+                    আমি <strong>Gemma</strong> চালিত আপনার এআই ট্রানজিট অ্যাসিস্ট্যান্ট। ঢাকার লাইভ ট্রাফিক চেক করতে, রাইড-শেয়ারের খরচ ও সময় অনুমান করতে এবং আপনার যাত্রার সবচেয়ে ভালো রুট খুঁজে পেতে আমাকে নির্দেশ দিন।
+                </p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="prompt-input" rows="1" placeholder="মেসেজ লিখুন..."></textarea>
+                <button id="send-btn" class="send-btn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        const statusDot = document.getElementById('status-dot');
+        const taskList = document.getElementById('task-list');
+        const taskInput = document.getElementById('task-input');
+        const modelSelect = document.getElementById('model-select');
+        const tokenCount = document.getElementById('token-count');
+        const turnCount = document.getElementById('turn-count');
+        const tokenBar = document.getElementById('token-bar');
+
+        let ws;
+        let isGenerating = false;
+        let currentAssistantBubble = null;
+        let currentToolsContainer = null;
+        let currentStreamContent = '';
+        let typingIndicatorElement = null;
+
+        function showTypingIndicator() {
+            if (typingIndicatorElement) return;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message assistant';
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = '<span class="terminal-spinner"></span> <span style="font-family: var(--mono); font-size: 0.85rem; color: var(--green);">এজেন্ট কাজ করছে...</span>';
+            
+            msgDiv.appendChild(typingDiv);
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+            typingIndicatorElement = msgDiv;
+        }
+
+        function hideTypingIndicator() {
+            if (typingIndicatorElement) {
+                typingIndicatorElement.remove();
+                typingIndicatorElement = null;
+            }
+        }
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                statusDot.style.background = 'var(--green)';
+                statusDot.style.boxShadow = '0 0 10px var(--green-glow)';
+            };
+
+            ws.onclose = () => {
+                statusDot.style.background = '#e0605a';
+                statusDot.style.boxShadow = '0 0 10px rgba(224, 96, 90, 0.4)';
+                setTimeout(connect, 3000);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'state') {
+                    updateSidebar(data);
+                } else if (data.type === 'tool_call') {
+                    const wasTyping = !!typingIndicatorElement;
+                    if (wasTyping) hideTypingIndicator();
+                    appendToolCall(data.name, data.args, data.result);
+                    if (wasTyping) showTypingIndicator();
+                } else if (data.type === 'stream') {
+                    hideTypingIndicator();
+                    if (!currentAssistantBubble) createAssistantMessage();
+                    currentStreamContent += data.token;
+                    currentAssistantBubble.innerHTML = marked.parse(currentStreamContent);
+                    scrollToBottom();
+                } else if (data.type === 'done' || data.type === 'error') {
+                    hideTypingIndicator();
+                    isGenerating = false;
+                    currentAssistantBubble = null;
+                    currentStreamContent = '';
+                    currentToolsContainer = null;
+                    promptInput.disabled = false;
+                    updateSendButton();
+                    promptInput.focus();
+                    
+                    if (data.type === 'error') {
+                        if (!currentAssistantBubble) createAssistantMessage();
+                        currentAssistantBubble.innerHTML = `<span style="color: #e0605a;">Error: ${data.message}</span>`;
+                        currentAssistantBubble = null;
+                    }
+                }
+            };
+        }
+
+        function updateSidebar(data) {
+            // Update Model Select with dynamic options
+            if (data.available_models && data.available_models.length > 0) {
+                // Keep the current selection if possible
+                const currentVal = modelSelect.value || data.model;
+                modelSelect.innerHTML = ''; // clear out hardcoded
+                
+                data.available_models.forEach(modelName => {
+                    const opt = document.createElement('option');
+                    opt.value = modelName;
+                    opt.textContent = modelName;
+                    modelSelect.appendChild(opt);
+                });
+                
+                if (data.available_models.includes(data.model)) {
+                    modelSelect.value = data.model;
+                } else if (data.available_models.includes(currentVal)) {
+                    modelSelect.value = currentVal;
+                }
+            } else {
+                // Fallback if available_models is missing
+                if (!Array.from(modelSelect.options).some(opt => opt.value === data.model)) {
+                    const opt = document.createElement('option');
+                    opt.value = data.model;
+                    opt.textContent = data.model;
+                    modelSelect.appendChild(opt);
+                }
+                modelSelect.value = data.model;
+            }
+
+            // Update Tasks
+            taskList.innerHTML = '';
+            if (data.tasks.length === 0) {
+                taskList.innerHTML = `<div style="color: var(--fg-faint); font-size: 0.85rem; font-style: italic;">এখনো কোনো টাস্ক নেই।</div>`;
+            } else {
+                const icons = {
+                    "pending": "○",
+                    "in_progress": "◉",
+                    "done": "✓",
+                    "failed": "✗"
+                };
+                
+                data.tasks.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = `task-item ${t.status}`;
+                    div.innerHTML = `
+                        <div class="status-icon ${t.status}">${icons[t.status]}</div>
+                        <div class="text">${t.id}. ${t.text}</div>
+                    `;
+                    taskList.appendChild(div);
+                });
+            }
+            
+            // Update Context Window
+            if (data.context_limit !== undefined) {
+                const used = data.context_tokens || 0;
+                const limit = data.context_limit || 32768;
+                const turns = data.turn_count || 0;
+                const pct = Math.min((used / limit) * 100, 100);
+                
+                tokenCount.textContent = `${used.toLocaleString()} / ${limit.toLocaleString()} টোকেন`;
+                turnCount.textContent = `${turns} টার্ন`;
+                tokenBar.style.width = `${pct}%`;
+                
+                if (pct > 90) {
+                    tokenBar.style.background = '#e0605a'; // Red
+                } else if (pct > 75) {
+                    tokenBar.style.background = '#e0b45a'; // Yellow
+                } else {
+                    tokenBar.style.background = 'var(--green)'; // Green
+                }
+            }
+        }
+
+        // GUI Actions
+        function clearMemory() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "command", cmd: "clear" }));
+                chatContainer.innerHTML = '';
+            }
+        }
+
+        function changeModel(modelName) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "command", cmd: "set_model", value: modelName }));
+            }
+        }
+
+        function prefillPrompt(text) {
+            promptInput.value = text;
+            promptInput.style.height = 'auto';
+            updateSendButton();
+            promptInput.focus();
+        }
+
+        function clearTasks() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "command", cmd: "clear_tasks" }));
+            }
+        }
+
+        function clearAllTasks() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "command", cmd: "clear_all_tasks" }));
+            }
+        }
+
+
+        taskInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                ws.send(JSON.stringify({ type: "command", cmd: "add_task", value: this.value.trim() }));
+                this.value = '';
+            }
+        });
+
+
+        // Chat Functions
+        function createAssistantMessage() {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message assistant';
+            
+            currentToolsContainer = document.createElement('div');
+            currentToolsContainer.style.width = '100%';
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'bubble';
+            
+            msgDiv.appendChild(currentToolsContainer);
+            msgDiv.appendChild(bubbleDiv);
+            chatContainer.appendChild(msgDiv);
+            
+            currentAssistantBubble = bubbleDiv;
+            scrollToBottom();
+        }
+
+        function appendToolCall(name, args, result) {
+            if (!currentToolsContainer) createAssistantMessage();
+            
+            const toolDiv = document.createElement('div');
+            toolDiv.className = 'tool-call';
+            
+            const header = document.createElement('div');
+            header.className = 'tool-header';
+            header.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                Running ${name}(...)
+            `;
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'tool-result';
+            const shortResult = result.length > 500 ? result.substring(0, 500) + '... [truncated]' : result;
+            resultDiv.textContent = shortResult;
+            
+            toolDiv.appendChild(header);
+            toolDiv.appendChild(resultDiv);
+            currentToolsContainer.appendChild(toolDiv);
+            scrollToBottom();
+        }
+
+        function appendUserMessage(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user';
+            msgDiv.innerHTML = `<div class="bubble">${text.replace(/\\n/g, '<br>')}</div>`;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function sendMessage() {
+            const text = promptInput.value.trim();
+            if (!text || isGenerating || ws.readyState !== WebSocket.OPEN) return;
+
+            appendUserMessage(text);
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+            
+            isGenerating = true;
+            promptInput.disabled = true;
+            updateSendButton();
+            showTypingIndicator();
+
+            ws.send(JSON.stringify({ type: "chat", message: text }));
+        }
+
+        function updateSendButton() {
+            sendBtn.disabled = !promptInput.value.trim() || isGenerating || !ws || ws.readyState !== WebSocket.OPEN;
+        }
+
+        promptInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            updateSendButton();
+        });
+
+        promptInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        connect();
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-transit-agent"
+version = "1.0.0"
+description = "A local, privacy-first AI agent powered by Ollama"
+readme = "README.md"
+requires-python = ">=3.10"
+    "ollama>=0.6",
+    "ddgs>=0.1",
+    "arxiv>=2.1",
+    "beautifulsoup4>=4.12",
+    "requests>=2.31",
+    "fastapi>=0.103",
+    "uvicorn>=0.23",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent*"]
